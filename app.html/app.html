@@ -1,0 +1,437 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Notebook — Cozy Light Edition</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Cormorant+Garamond:ital,wght@0,600;1,400&family=Caveat:wght@600;700&display=swap" rel="stylesheet">
+    <style>
+        body { 
+            background-color: #F7F4EF; 
+            color: #3E322C; 
+            font-family: 'Plus Jakarta Sans', sans-serif; 
+        }
+        .font-heading { font-family: 'Cormorant Garamond', serif; }
+        .font-handwriting { font-family: 'Caveat', cursive; }
+        
+        /* Desktop App Window Styling */
+        .app-window {
+            background: #FDFBF7;
+            border: 1px solid #E6DFD5;
+            box-shadow: 0 25px 50px -12px rgba(100, 80, 60, 0.15);
+        }
+        .sidebar-panel {
+            background: #F4EFEA;
+            border-right: 1px solid #E6DFD5;
+        }
+
+        /* Vertical Cardstock Bookmark Style */
+        .cardstock-bookmark {
+            background: linear-gradient(135deg, #FFFBEB 0%, #FEF3C7 100%);
+            border: 1px solid #FCD34D;
+            color: #78350F;
+            box-shadow: 0 4px 12px rgba(120, 80, 20, 0.12);
+            writing-mode: vertical-rl;
+            text-orientation: mixed;
+            letter-spacing: 0.15em;
+        }
+
+        /* Directional Page Sliding Animations */
+        @keyframes slideFromRight {
+            from { opacity: 0; transform: translateX(35px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+        @keyframes slideFromLeft {
+            from { opacity: 0; transform: translateX(-35px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+
+        .animate-slide-next { animation: slideFromRight 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+        .animate-slide-prev { animation: slideFromLeft 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+
+        @keyframes popUp {
+            from { opacity: 0; transform: scale(0.95) translateY(8px); }
+            to { opacity: 1; transform: scale(1) translateY(0); }
+        }
+        .animate-pop { animation: popUp 0.2s ease-out forwards; }
+    </style>
+</head>
+<body class="min-h-screen flex items-center justify-center p-4 sm:p-8 selection:bg-amber-200 selection:text-amber-900">
+
+    <!-- Desktop App Container Frame -->
+    <div id="app-frame" class="app-window w-full max-w-6xl h-[88vh] rounded-2xl flex overflow-hidden transition-all duration-300">
+        
+        <!-- Left Sidebar Navigation (Hidden automatically when reading a book) -->
+        <aside id="main-sidebar" class="sidebar-panel w-64 p-6 flex flex-col justify-between">
+            <div class="space-y-6">
+                <div class="flex items-center gap-3">
+                    <span class="text-2xl">📓</span>
+                    <div>
+                        <h1 class="text-base font-bold tracking-wide text-[#3E322C]">Notebook</h1>
+                        <span class="text-[10px] text-amber-700 bg-amber-100 px-2 py-0.5 rounded-full font-semibold">Cozy Desktop</span>
+                    </div>
+                </div>
+
+                <nav class="space-y-2">
+                    <button onclick="switchView('library')" id="nav-lib" class="w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-xs font-semibold tracking-wider uppercase transition bg-amber-600 text-white shadow-sm">
+                        <span>📖</span> My Library
+                    </button>
+                    <button onclick="switchView('store')" id="nav-store" class="w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-xs font-semibold tracking-wider uppercase transition text-[#7A6A5E] hover:bg-[#EAE2D7] hover:text-[#3E322C]">
+                        <span>☕</span> Cozy Parlor
+                    </button>
+                </nav>
+            </div>
+
+            <div class="p-4 bg-[#EFE9DF] rounded-xl border border-[#E0D7CD]">
+                <p class="text-[11px] text-[#7A6A5E] font-medium">Inserted Bookmarks:</p>
+                <p id="sidebar-bm-count" class="text-xs font-bold text-amber-800 mt-1">0 placed in notes</p>
+            </div>
+        </aside>
+
+        <!-- Main Content Area -->
+        <main class="flex-1 flex flex-col min-w-0 bg-[#F7F4EF]">
+            <!-- Top Header Bar -->
+            <header id="main-header" class="bg-[#FDFBF7] border-b border-[#E6DFD5] px-6 py-4 flex justify-between items-center">
+                <div class="relative w-full max-w-sm hidden sm:block">
+                    <input type="text" placeholder="Search your notebook..." class="w-full bg-[#F4EFEA] border border-[#E0D7CD] rounded-xl px-4 py-1.5 text-xs text-[#3E322C] placeholder-[#9A8A7E] focus:outline-none focus:border-amber-600">
+                </div>
+                <div class="flex items-center gap-3">
+                    <span class="text-xs text-[#7A6A5E] font-medium">✨ Light & Cozy Edition</span>
+                </div>
+            </header>
+
+            <!-- Dynamic Viewport -->
+            <div class="flex-1 p-6 sm:p-8 overflow-y-auto" id="app-viewport">
+                <!-- Views injected here -->
+            </div>
+        </main>
+    </div>
+
+    <script>
+        // --- PRELOADED COZY NOTEBOOKS ---
+        let userLibrary = [
+            {
+                id: 'b-1',
+                title: "Anne of Green Gables",
+                author: "L.M. Montgomery",
+                coverBg: "linear-gradient(135deg, #A7F3D0 0%, #6EE7B7 100%)",
+                textColor: "#064E3B",
+                currentPage: 0,
+                pages: [
+                    {
+                        chapter: "Chapter I: Mrs. Rachel Lynde is Surprised",
+                        paragraphs: [
+                            "Mrs. Rachel Lynde lived just where the Avonlea main road dipped down into a little hollow, bordered with alders and lady's eardrops and traversed by a brook.",
+                            "It was a golden afternoon, and the sunlight streamed through the kitchen window, warming the braided rugs on the polished floor."
+                        ],
+                        placedBookmarks: []
+                    },
+                    {
+                        chapter: "Chapter II: Matthew Cuthbert is Surprised",
+                        paragraphs: [
+                            "Matthew Cuthbert and his sister Marilla lived at Green Gables, a rambling old farmhouse tucked away amidst orchards and rolling green hills.",
+                            "The air smelled of sweet apple blossoms and fresh rain, promising a wonderful adventure ahead."
+                        ],
+                        placedBookmarks: []
+                    }
+                ]
+            },
+            {
+                id: 'b-2',
+                title: "The House in the Cerulean Sea",
+                author: "TJ Klune",
+                coverBg: "linear-gradient(135deg, #BAE6FD 0%, #7DD3FC 100%)",
+                textColor: "#0369A1",
+                currentPage: 0,
+                pages: [
+                    {
+                        chapter: "Chapter 1: The Sound of the Sea",
+                        paragraphs: [
+                            "Linus Baker was a by-the-book case worker. He led a quiet, orderly life in a small house with a green door and a cat named Calliope.",
+                            "Sometimes, the most unexpected mornings bring the brightest blue skies and a chance to change everything."
+                        ],
+                        placedBookmarks: []
+                    }
+                ]
+            }
+        ];
+
+        let storeBooks = [
+            {
+                id: 's-3',
+                title: "Legends & Lattes",
+                author: "Travis Baldree",
+                coverBg: "linear-gradient(135deg, #FECACA 0%, #FCA5A5 100%)",
+                textColor: "#991B1B",
+                price: "Free",
+                synopsis: "The orc, Viv, stood in the muddy alleyway and gazed up at the creaky wooden sign swaying gently in the morning breeze."
+            }
+        ];
+
+        let currentView = 'library';
+        let activeId = 'b-1';
+        let isChestOpen = false;
+        let bookmarkInHand = null;
+        let lastSlideDirection = 'next';
+
+        const cardstockBookmarks = [
+            { name: "FLORA Sunflower 🌻", tag: "FLORA" },
+            { name: "BOTANICAL Fern 🌿", tag: "FERN" },
+            { name: "VINTAGE Rose 🌹", tag: "ROSE" }
+        ];
+
+        function switchView(view, id = null) {
+            currentView = view;
+            if (id) activeId = id;
+            isChestOpen = false;
+            bookmarkInHand = null;
+            render();
+        }
+
+        function render() {
+            const sidebar = document.getElementById('main-sidebar');
+            const header = document.getElementById('main-header');
+            const viewport = document.getElementById('app-viewport');
+
+            // IMMERSIVE BOOK MODE: When reading, hide sidebars so ONLY the book is shown!
+            if (currentView === 'reader') {
+                sidebar.classList.add('hidden');
+                header.classList.add('hidden');
+                viewport.className = "flex-1 p-4 sm:p-10 overflow-y-auto bg-[#F7F4EF] h-full";
+                viewport.innerHTML = renderReader();
+            } else {
+                sidebar.classList.remove('hidden');
+                header.classList.remove('hidden');
+                viewport.className = "flex-1 p-6 sm:p-8 overflow-y-auto";
+                if (currentView === 'library') viewport.innerHTML = renderLibrary();
+                else if (currentView === 'store') viewport.innerHTML = renderStore();
+            }
+        }
+
+        function renderLibrary() {
+            return `
+                <div class="mb-8">
+                    <h2 class="text-2xl font-bold text-[#3E322C] tracking-wide">My Notebooks</h2>
+                    <p class="text-[#7A6A5E] text-xs mt-1">Select any notebook to open the book in full view.</p>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    ${userLibrary.map(b => `
+                        <div class="bg-[#FDFBF7] border border-[#E6DFD5] rounded-2xl overflow-hidden flex flex-col transition hover:border-amber-400 group shadow-md">
+                            <div class="h-44 p-6 flex flex-col justify-between" style="background: ${b.coverBg}; color: ${b.textColor};">
+                                <span class="text-[10px] uppercase font-bold tracking-widest bg-white/60 backdrop-blur-md px-3 py-1 rounded-full w-max">Notebook</span>
+                                <div>
+                                    <h3 class="text-xl font-bold leading-snug">${b.title}</h3>
+                                    <p class="text-xs opacity-90 mt-0.5">${b.author}</p>
+                                </div>
+                            </div>
+                            <div class="p-5 flex flex-col gap-4 flex-1 justify-between bg-[#FDFBF7]">
+                                <div class="flex justify-between text-xs text-[#7A6A5E]">
+                                    <span>📖 Page ${b.currentPage + 1}</span>
+                                </div>
+                                <button onclick="switchView('reader', '${b.id}')" class="w-full py-2.5 bg-[#F4EFEA] hover:bg-amber-600 text-[#3E322C] hover:text-white rounded-xl text-xs font-bold uppercase tracking-wider transition shadow-sm">Open Book 📖</button>
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+        }
+
+        function renderStore() {
+            return `
+                <div class="mb-8">
+                    <h2 class="text-2xl font-bold text-[#3E322C] tracking-wide">Cozy Parlor Catalog</h2>
+                    <p class="text-[#7A6A5E] text-xs mt-1">Discover new titles to add to your collection.</p>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    ${storeBooks.map(b => `
+                        <div class="bg-[#FDFBF7] border border-[#E6DFD5] rounded-2xl overflow-hidden flex flex-col transition hover:border-amber-400 shadow-md">
+                            <div class="h-44 p-6 flex flex-col justify-between" style="background: ${b.coverBg}; color: ${b.textColor};">
+                                <span class="text-[10px] uppercase font-bold tracking-widest bg-white/60 backdrop-blur-md px-3 py-1 rounded-full w-max">Available</span>
+                                <div>
+                                    <h3 class="text-xl font-bold leading-snug">${b.title}</h3>
+                                    <p class="text-xs opacity-90 mt-0.5">${b.author}</p>
+                                </div>
+                            </div>
+                            <div class="p-5 flex flex-col gap-4 flex-1 justify-between bg-[#FDFBF7]">
+                                <p class="text-xs text-[#7A6A5E] leading-relaxed">${b.synopsis}</p>
+                                <div class="pt-3 border-t border-[#E6DFD5] flex items-center justify-between">
+                                    <span class="text-sm font-bold text-amber-700">${b.price}</span>
+                                    <button onclick="addBook('${b.id}')" class="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-xl text-xs font-bold uppercase tracking-wider transition shadow-sm">Add Book</button>
+                                </div>
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+        }
+
+        function addBook(id) {
+            const b = storeBooks.find(item => item.id === id);
+            if (b) {
+                userLibrary.push({
+                    id: 'b-' + Date.now(),
+                    title: b.title,
+                    author: b.author,
+                    coverBg: b.coverBg,
+                    textColor: b.textColor,
+                    currentPage: 0,
+                    pages: [{ chapter: "Chapter One", paragraphs: [b.synopsis], placedBookmarks: [] }]
+                });
+                storeBooks = storeBooks.filter(item => item.id !== id);
+                switchView('library');
+            }
+        }
+
+        function renderReader() {
+            const book = userLibrary.find(item => item.id === activeId);
+            if (!book) return `<p>Book not found.</p>`;
+            const page = book.pages[book.currentPage];
+            const slideClass = lastSlideDirection === 'next' ? 'animate-slide-next' : 'animate-slide-prev';
+
+            return `
+                <div class="flex flex-col gap-6 max-w-4xl mx-auto h-full">
+                    <!-- Clean Reader Toolbar -->
+                    <div class="bg-[#FDFBF7] p-4 rounded-2xl border border-[#E6DFD5] flex items-center justify-between shadow-sm">
+                        <button onclick="switchView('library')" class="px-3.5 py-1.5 bg-[#F4EFEA] hover:bg-[#EAE2D7] text-[#3E322C] rounded-xl text-xs font-semibold uppercase tracking-wider transition">⬅ Back to Library</button>
+                        <span class="font-bold text-[#3E322C] text-sm">${book.title}</span>
+                        <button onclick="toggleChest()" class="px-4 py-1.5 bg-amber-600 hover:bg-amber-700 text-white rounded-xl text-xs font-bold uppercase tracking-wider transition shadow-sm">🎁 Bookmark Chest</button>
+                    </div>
+
+                    <!-- Bookmark In Hand Notice -->
+                    ${bookmarkInHand ? `
+                        <div class="bg-amber-50 border border-amber-300 text-amber-900 p-3 rounded-xl flex justify-between items-center text-xs shadow-sm">
+                            <div class="flex items-center gap-2 font-bold">
+                                <span>👆 In Hand: <span class="underline">${bookmarkInHand.name}</span>. Click any paragraph below to tuck it in!</span>
+                            </div>
+                            <button onclick="cancelHand()" class="text-amber-700 hover:text-amber-900 font-bold bg-amber-200/60 px-2.5 py-1 rounded-lg">Cancel</button>
+                        </div>
+                    ` : ''}
+
+                    <!-- Book Open Layout (Full Focus) -->
+                    <div class="grid grid-cols-1 gap-6 relative flex-1">
+                        <!-- Book Page Spread with Directional Slide Animation -->
+                        <div id="page-sheet" class="bg-[#FDFBF7] border border-[#E6DFD5] p-8 sm:p-14 rounded-2xl relative leading-relaxed ${slideClass} shadow-md flex flex-col justify-between">
+                            <div>
+                                <div class="flex justify-between items-center border-b border-[#E6DFD5] pb-4 mb-6">
+                                    <h3 class="text-xl font-heading font-bold text-[#3E322C]">${page.chapter}</h3>
+                                    <span class="text-xs text-[#7A6A5E] font-semibold">Page ${book.currentPage + 1} of ${book.pages.length}</span>
+                                </div>
+
+                                <div class="space-y-6">
+                                    ${page.paragraphs.map((para, pIdx) => {
+                                        const bmsHere = page.placedBookmarks.filter(b => b.paraIdx === pIdx);
+                                        return `
+                                            <div onclick="placeBookmark(${pIdx})" class="group relative p-3 rounded-xl transition hover:bg-[#F4EFEA]/60 cursor-pointer">
+                                                
+                                                <!-- Vertical Cardstock Bookmarks -->
+                                                <div class="flex flex-wrap gap-2 mb-2">
+                                                    ${bmsHere.map(bm => `
+                                                        <div class="cardstock-bookmark px-2.5 py-3 rounded-lg text-[10px] font-bold shadow-md flex items-center gap-2 animate-pop select-none">
+                                                            <span>🏷️ ${bm.name}</span>
+                                                            <button onclick="removeBookmark(event, ${bm.id})" class="text-amber-900 hover:text-red-700 font-bold ml-1">×</button>
+                                                        </div>
+                                                    `).join('')}
+                                                </div>
+
+                                                <p class="text-[#3E322C] text-base leading-loose">${para}</p>
+                                                ${bookmarkInHand ? `<span class="absolute right-3 top-3 opacity-0 group-hover:opacity-100 text-[10px] text-amber-800 font-bold bg-amber-100 border border-amber-300 px-2 py-0.5 rounded">📥 Click to tuck cardstock here</span>` : ''}
+                                            </div>
+                                        `;
+                                    }).join('')}
+                                </div>
+                            </div>
+
+                            <!-- Page Turn Footer (Right-to-Left / Left-to-Right controls) -->
+                            <div class="mt-8 flex justify-between items-center pt-4 border-t border-[#E6DFD5] text-xs">
+                                <button onclick="changePage(-1)" ${book.currentPage === 0 ? 'disabled class="opacity-20 cursor-not-allowed"' : 'class="px-4 py-2 bg-[#F4EFEA] hover:bg-[#EAE2D7] text-[#3E322C] font-semibold uppercase tracking-wider rounded-xl transition"'}>← Previous Page</button>
+                                <span class="text-[#7A6A5E]">Notebook Reader</span>
+                                <button onclick="changePage(1)" ${book.currentPage === book.pages.length - 1 ? 'disabled class="opacity-20 cursor-not-allowed"' : 'class="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white font-semibold uppercase tracking-wider rounded-xl transition shadow-sm"'}>Next Page →</button>
+                            </div>
+                        </div>
+
+                        <!-- Bookmark Chest Modal Popup when toggled -->
+                        ${isChestOpen ? `
+                            <div class="bg-[#FDFBF7] border border-amber-300 p-5 rounded-2xl animate-pop shadow-xl max-w-sm mx-auto w-full">
+                                <div class="flex justify-between items-center mb-3">
+                                    <h4 class="font-bold text-amber-900 text-xs uppercase tracking-wider">🎁 Bookmark Chest</h4>
+                                    <button onclick="toggleChest()" class="text-[#7A6A5E] hover:text-[#3E322C] text-xs font-bold">✕</button>
+                                </div>
+                                <p class="text-[11px] text-[#7A6A5E] mb-3">Double-click any vertical cardstock bookmark to pick it up:</p>
+                                <div class="space-y-2">
+                                    ${cardstockBookmarks.map(bm => `
+                                        <div ondblclick="pickBookmark('${bm.name}', '${bm.tag}')" class="p-3 bg-[#F4EFEA] hover:bg-[#EAE2D7] border border-[#E0D7CD] rounded-xl text-xs font-bold text-amber-900 cursor-pointer transition flex items-center justify-between group">
+                                            <span>🏷️ ${bm.name}</span>
+                                            <span class="text-[9px] text-amber-700 bg-amber-100 px-2 py-0.5 rounded">Double-click ✨</span>
+                                        </div>
+                                    `).join('')}
+                                </div>
+                            </div>
+                        ` : ''}
+                    </div>
+                </div>
+            `;
+        }
+
+        function toggleChest() {
+            isChestOpen = !isChestOpen;
+            render();
+        }
+
+        function pickBookmark(name, tag) {
+            bookmarkInHand = { name, tag };
+            isChestOpen = false;
+            render();
+        }
+
+        function cancelHand() {
+            bookmarkInHand = null;
+            render();
+        }
+
+        function placeBookmark(pIdx) {
+            if (!bookmarkInHand) return;
+            const book = userLibrary.find(item => item.id === activeId);
+            if (book) {
+                book.pages[book.currentPage].placedBookmarks.push({
+                    id: Date.now(),
+                    name: bookmarkInHand.name,
+                    paraIdx: pIdx
+                });
+                bookmarkInHand = null;
+                render();
+            }
+        }
+
+        function removeBookmark(e, bId) {
+            e.stopPropagation();
+            const book = userLibrary.find(item => item.id === activeId);
+            if (book) {
+                const page = book.pages[book.currentPage];
+                page.placedBookmarks = page.placedBookmarks.filter(b => b.id !== bId);
+                render();
+            }
+        }
+
+        function changePage(dir) {
+            const book = userLibrary.find(item => item.id === activeId);
+            if (book) {
+                const next = book.currentPage + dir;
+                if (next >= 0 && next < book.pages.length) {
+                    lastSlideDirection = dir > 0 ? 'next' : 'prev';
+                    book.currentPage = next;
+                    bookmarkInHand = null;
+                    isChestOpen = false;
+                    render();
+                }
+            }
+        }
+
+        render();
+    </script>
+</body>
+</html>
